@@ -1,6 +1,7 @@
 package com.taskboard.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -12,7 +13,10 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Title cannot be empty")
     private String title;
+
+    @NotBlank(message = "Status cannot be empty")
     private String status;
 
     @ManyToOne
