@@ -1,50 +1,56 @@
 package com.taskboard.controller;
 
+import com.taskboard.dto.UserCreateDTO;
 import com.taskboard.dto.UserDTO;
 import com.taskboard.model.User;
 import com.taskboard.repo.UserRepository;
-import jakarta.validation.Valid;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    private final UserRepository repo;
 
-    public UserController(UserRepository repo) {
+    private final UserRepository repo;
+    private final PasswordEncoder encoder;
+
+    public UserController(UserRepository repo, PasswordEncoder encoder) {
         this.repo = repo;
+        this.encoder = encoder;
     }
 
+    // get all users
     @GetMapping
     public List<UserDTO> all() {
-        return repo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        return repo.findAll().stream().map(this::toDTO).toList();
     }
 
+    // get single use
     @GetMapping("/{id}")
     public UserDTO get(@PathVariable Long id) {
-        User user = repo.findById(id).orElseThrow();
-        return toDTO(user);
+        return toDTO(repo.findById(id).orElseThrow());
     }
 
+    // create new user
     @PostMapping
-    public UserDTO create(@Valid @RequestBody UserDTO dto) {
-        User user = new User();
-        user.setEmail(dto.getEmail());
-        user.setName(dto.getName());
-        User saved = repo.save(user);
-        return toDTO(saved);
+    public UserDTO create(@RequestBody UserCreateDTO dto) {
+        User u = new User();
+        u.setEmail(dto.getEmail());
+        u.setName(dto.getName());
+        u.setPassword(encoder.encode(dto.getPassword()));
+        return toDTO(repo.save(u));
     }
 
+    // update user profile
     @PutMapping("/{id}")
-    public UserDTO update(@PathVariable Long id, @Valid @RequestBody UserDTO dto) {
-        User existing = repo.findById(id).orElseThrow();
-        existing.setEmail(dto.getEmail());
-        existing.setName(dto.getName());
-        User updated = repo.save(existing);
-        return toDTO(updated);
+    public UserDTO update(@PathVariable Long id, @RequestBody UserCreateDTO dto) {
+        User u = repo.findById(id).orElseThrow();
+        u.setEmail(dto.getEmail());
+        u.setName(dto.getName());
+        u.setPassword(encoder.encode(dto.getPassword()));
+        return toDTO(repo.save(u));
     }
 
     @DeleteMapping("/{id}")
@@ -52,11 +58,12 @@ public class UserController {
         repo.deleteById(id);
     }
 
-    private UserDTO toDTO(User user) {
+    // convert
+    private UserDTO toDTO(User u) {
         UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setName(user.getName());
+        dto.setId(u.getId());
+        dto.setEmail(u.getEmail());
+        dto.setName(u.getName());
         return dto;
     }
 }

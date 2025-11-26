@@ -16,6 +16,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String role = "USER";
+
     @Email(message = "Invalid email format")
     @NotBlank(message = "Email cannot be empty")
     @Column(nullable = false, unique = true)
@@ -23,6 +25,12 @@ public class User {
 
     @NotBlank(message = "Name cannot be empty")
     private String name;
+
+
+    @JsonIgnore
+    @NotBlank(message = "Password cannot be empty")
+    @Column(nullable = false)
+    private String password;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     @JsonIgnore

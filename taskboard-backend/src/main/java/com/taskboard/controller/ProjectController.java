@@ -1,21 +1,20 @@
 package com.taskboard.controller;
 
+import com.taskboard.dto.ProjectCreateDTO;
 import com.taskboard.dto.ProjectDTO;
-import com.taskboard.dto.TaskDTO;
 import com.taskboard.model.Project;
-import com.taskboard.model.Task;
 import com.taskboard.model.User;
 import com.taskboard.repo.ProjectRepository;
 import com.taskboard.repo.UserRepository;
-import jakarta.validation.Valid;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects")
 public class ProjectController {
+
     private final ProjectRepository repo;
     private final UserRepository userRepo;
 
@@ -24,67 +23,56 @@ public class ProjectController {
         this.userRepo = userRepo;
     }
 
-    // GET all projects as DTOs
+    // get all projects
     @GetMapping
     public List<ProjectDTO> all() {
-        return repo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        return repo.findAll().stream().map(this::toDTO).toList();
     }
 
-    // GET single project
+    // get single project
     @GetMapping("/{id}")
     public ProjectDTO get(@PathVariable Long id) {
-        Project project = repo.findById(id).orElseThrow();
-        return toDTO(project);
+        return toDTO(repo.findById(id).orElseThrow());
     }
 
-    // CREATE project for a specific owner
-    @PostMapping("/{ownerId}")
-    public ProjectDTO create(@PathVariable Long ownerId, @Valid @RequestBody ProjectDTO dto) {
-        User owner = userRepo.findById(ownerId).orElseThrow();
-        Project project = new Project();
-        project.setName(dto.getName());
-        project.setDescription(dto.getDescription());
-        project.setOwner(owner);
-        Project saved = repo.save(project);
-        return toDTO(saved);
+    // create project and assign the user
+    @PostMapping
+    public ProjectDTO create(@RequestBody ProjectCreateDTO dto) {
+        User owner = getAuthUser();
+
+        Project p = new Project();
+        p.setName(dto.getName());
+        p.setDescription(dto.getDescription());
+        p.setOwner(owner);
+
+        return toDTO(repo.save(p));
     }
 
-    // UPDATE project
     @PutMapping("/{id}")
-    public ProjectDTO update(@PathVariable Long id, @Valid @RequestBody ProjectDTO dto) {
-        Project existing = repo.findById(id).orElseThrow();
-        existing.setName(dto.getName());
-        existing.setDescription(dto.getDescription());
-        Project updated = repo.save(existing);
-        return toDTO(updated);
+    public ProjectDTO update(@PathVariable Long id, @RequestBody ProjectCreateDTO dto) {
+        Project p = repo.findById(id).orElseThrow();
+        p.setName(dto.getName());
+        p.setDescription(dto.getDescription());
+        return toDTO(repo.save(p));
     }
 
-    // DELETE project
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         repo.deleteById(id);
     }
 
-    // Conversion Helpers
-    private ProjectDTO toDTO(Project project) {
-        ProjectDTO dto = new ProjectDTO();
-        dto.setId(project.getId());
-        dto.setName(project.getName());
-        dto.setDescription(project.getDescription());
-        if (project.getOwner() != null) dto.setOwnerId(project.getOwner().getId());
-        if (project.getTasks() != null) {
-            dto.setTasks(project.getTasks().stream().map(this::toTaskDTO).collect(Collectors.toList()));
-        }
-        return dto;
+    private User getAuthUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepo.findByEmail(email).orElseThrow();
     }
 
-    private TaskDTO toTaskDTO(Task task) {
-        TaskDTO dto = new TaskDTO();
-        dto.setId(task.getId());
-        dto.setTitle(task.getTitle());
-        dto.setStatus(task.getStatus());
-        if (task.getAssignee() != null) dto.setAssigneeId(task.getAssignee().getId());
-        if (task.getProject() != null) dto.setProjectId(task.getProject().getId());
+    // convert project to dto
+    private ProjectDTO toDTO(Project p) {
+        ProjectDTO dto = new ProjectDTO();
+        dto.setId(p.getId());
+        dto.setName(p.getName());
+        dto.setDescription(p.getDescription());
+        dto.setOwnerId(p.getOwner() != null ? p.getOwner().getId() : null);
         return dto;
     }
 }

@@ -1,5 +1,6 @@
 package com.taskboard.controller;
 
+import com.taskboard.dto.TaskCreateDTO;
 import com.taskboard.dto.TaskDTO;
 import com.taskboard.model.Project;
 import com.taskboard.model.Task;
@@ -7,15 +8,15 @@ import com.taskboard.model.User;
 import com.taskboard.repo.ProjectRepository;
 import com.taskboard.repo.TaskRepository;
 import com.taskboard.repo.UserRepository;
-import jakarta.validation.Valid;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
+
     private final TaskRepository repo;
     private final ProjectRepository projectRepo;
     private final UserRepository userRepo;
@@ -26,39 +27,40 @@ public class TaskController {
         this.userRepo = userRepo;
     }
 
+    // GET all tasks
     @GetMapping
     public List<TaskDTO> all() {
-        return repo.findAll().stream().map(this::toDTO).collect(Collectors.toList());
+        return repo.findAll().stream().map(this::toDTO).toList();
     }
 
+    // GET single task
     @GetMapping("/{id}")
     public TaskDTO get(@PathVariable Long id) {
-        Task task = repo.findById(id).orElseThrow();
-        return toDTO(task);
+        return toDTO(repo.findById(id).orElseThrow());
     }
 
-    @PostMapping("/project/{projectId}/assign/{userId}")
-    public TaskDTO createAndAssign(@PathVariable Long projectId, @PathVariable Long userId, @Valid @RequestBody TaskDTO dto) {
+    // create task
+    @PostMapping("/project/{projectId}")
+    public TaskDTO create(@PathVariable Long projectId, @RequestBody TaskCreateDTO dto) {
         Project project = projectRepo.findById(projectId).orElseThrow();
-        User assignee = userRepo.findById(userId).orElseThrow();
+        User assignee = getAuthUser();
 
-        Task task = new Task();
-        task.setTitle(dto.getTitle());
-        task.setStatus(dto.getStatus());
-        task.setProject(project);
-        task.setAssignee(assignee);
+        Task t = new Task();
+        t.setTitle(dto.getTitle());
+        t.setStatus(dto.getStatus());
+        t.setProject(project);
+        t.setAssignee(assignee);
 
-        Task saved = repo.save(task);
-        return toDTO(saved);
+        return toDTO(repo.save(t));
     }
 
+    // update task
     @PutMapping("/{id}")
-    public TaskDTO update(@PathVariable Long id, @Valid @RequestBody TaskDTO dto) {
-        Task existing = repo.findById(id).orElseThrow();
-        existing.setTitle(dto.getTitle());
-        existing.setStatus(dto.getStatus());
-        Task updated = repo.save(existing);
-        return toDTO(updated);
+    public TaskDTO update(@PathVariable Long id, @RequestBody TaskCreateDTO dto) {
+        Task t = repo.findById(id).orElseThrow();
+        t.setTitle(dto.getTitle());
+        t.setStatus(dto.getStatus());
+        return toDTO(repo.save(t));
     }
 
     @DeleteMapping("/{id}")
@@ -66,13 +68,19 @@ public class TaskController {
         repo.deleteById(id);
     }
 
-    private TaskDTO toDTO(Task task) {
+    private User getAuthUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepo.findByEmail(email).orElseThrow();
+    }
+
+    // convert to response DTO
+    private TaskDTO toDTO(Task t) {
         TaskDTO dto = new TaskDTO();
-        dto.setId(task.getId());
-        dto.setTitle(task.getTitle());
-        dto.setStatus(task.getStatus());
-        if (task.getProject() != null) dto.setProjectId(task.getProject().getId());
-        if (task.getAssignee() != null) dto.setAssigneeId(task.getAssignee().getId());
+        dto.setId(t.getId());
+        dto.setTitle(t.getTitle());
+        dto.setStatus(t.getStatus());
+        dto.setProjectId(t.getProject() != null ? t.getProject().getId() : null);
+        dto.setAssigneeId(t.getAssignee() != null ? t.getAssignee().getId() : null);
         return dto;
     }
 }

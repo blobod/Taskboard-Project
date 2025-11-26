@@ -1,17 +1,25 @@
 spring:
   application:
     name: taskboard-backend
+
   datasource:
     url: jdbc:postgresql://localhost:5432/taskboard
     username: taskboard
     password: taskboard
+
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         format_sql: true
+
   flyway:
     enabled: true
+
+jwt:
+  secret: "vXf3bLxZ7Wf4q9LwG7d0rQ2tYhN8pJrUuS5mAaBbCcDdEeFfGgHhIiJjKkLlMm"
+  expirationMillis: 3600000
+
 server:
   port: 8080
