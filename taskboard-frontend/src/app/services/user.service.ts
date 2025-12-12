@@ -26,22 +26,22 @@ export class UserService {
   }
 
   getAllUsers(): Observable<UserDTO[]> {
-    return this.http.get<UserDTO[]>(this.baseUrl, { headers: this.getHeaders() });
+    return this.http.get<UserDTO[]>(this.baseUrl);
   }
 
   getUserById(id: number): Observable<UserDTO> {
-    return this.http.get<UserDTO>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.get<UserDTO>(`${this.baseUrl}/${id}`);
   }
 
   createUser(user: UserDTO): Observable<UserDTO> {
-    return this.http.post<UserDTO>(this.baseUrl, user, { headers: this.getHeaders() });
+    return this.http.post<UserDTO>(this.baseUrl, user);
   }
 
   updateUser(id: number, user: UserDTO): Observable<UserDTO> {
-    return this.http.put<UserDTO>(`${this.baseUrl}/${id}`, user, { headers: this.getHeaders() });
+    return this.http.put<UserDTO>(`${this.baseUrl}/${id}`, user);
   }
 
   deleteUser(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

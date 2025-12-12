@@ -25,22 +25,22 @@ export class ProjectService {
   }
 
   getAllProjects(): Observable<ProjectDTO[]> {
-    return this.http.get<ProjectDTO[]>(this.baseUrl, { headers: this.getHeaders() });
+    return this.http.get<ProjectDTO[]>(this.baseUrl);
   }
 
   getProjectById(id: number): Observable<ProjectDTO> {
-    return this.http.get<ProjectDTO>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.get<ProjectDTO>(`${this.baseUrl}/${id}`);
   }
 
   createProject(project: ProjectDTO): Observable<ProjectDTO> {
-    return this.http.post<ProjectDTO>(this.baseUrl, project, { headers: this.getHeaders() });
+    return this.http.post<ProjectDTO>(this.baseUrl, project);
   }
 
   updateProject(id: number, project: ProjectDTO): Observable<ProjectDTO> {
-    return this.http.put<ProjectDTO>(`${this.baseUrl}/${id}`, project, { headers: this.getHeaders() });
+    return this.http.put<ProjectDTO>(`${this.baseUrl}/${id}`, project);
   }
 
   deleteProject(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

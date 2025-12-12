@@ -28,23 +28,23 @@ export class TaskService {
   }
 
   getAllTasks(): Observable<TaskDTO[]> {
-    return this.http.get<TaskDTO[]>(this.baseUrl, { headers: this.getHeaders() });
+    return this.http.get<TaskDTO[]>(this.baseUrl);
   }
 
   getTaskById(id: number): Observable<TaskDTO> {
-    return this.http.get<TaskDTO>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.get<TaskDTO>(`${this.baseUrl}/${id}`);
   }
 
   // Updated: Create task for a specific project (assignee = logged user)
   createTask(projectId: number, task: TaskDTO): Observable<TaskDTO> {
-    return this.http.post<TaskDTO>(`${this.baseUrl}/project/${projectId}`, task, { headers: this.getHeaders() });
+    return this.http.post<TaskDTO>(`${this.baseUrl}/project/${projectId}`, task);
   }
 
   updateTask(id: number, task: TaskDTO): Observable<TaskDTO> {
-    return this.http.put<TaskDTO>(`${this.baseUrl}/${id}`, task, { headers: this.getHeaders() });
+    return this.http.put<TaskDTO>(`${this.baseUrl}/${id}`, task);
   }
 
   deleteTask(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

@@ -39,8 +39,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll() // Allow auth endpoints
-                        .requestMatchers("/api/**").permitAll() // TEMPORARY: Allow all API endpoints for testing
+                        .requestMatchers("/auth/**").permitAll() // able to login/register
+                        .requestMatchers("/api/**").authenticated() // only when authenticated
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

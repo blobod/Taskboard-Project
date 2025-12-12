@@ -3,11 +3,16 @@ package com.taskboard.controller;
 import com.taskboard.dto.AuthResponse;
 import com.taskboard.dto.LoginRequest;
 import com.taskboard.dto.RegisterRequest;
+import com.taskboard.dto.UserDTO;
 import com.taskboard.model.User;
 import com.taskboard.repo.UserRepository;
 import com.taskboard.security.JwtService;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -25,12 +30,12 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
-    // register
     @PostMapping("/register")
     public AuthResponse register(@RequestBody RegisterRequest req) {
 
         if (userRepo.findByEmail(req.email()).isPresent()) {
-            throw new RuntimeException("Email already in use");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Email already in use");
         }
 
         User user = new User();
@@ -40,25 +45,40 @@ public class AuthController {
 
         userRepo.save(user);
 
-        // pass emailto generate token
         String token = jwtService.generateToken(user.getEmail());
 
-        return new AuthResponse(token);
+        // Create UserDTO and return it with the token
+        UserDTO userDto = new UserDTO();
+        userDto.setId(user.getId());
+        userDto.setName(user.getName());
+        userDto.setEmail(user.getEmail());
+        userDto.setOwnedProjectIds(List.of());
+        userDto.setAssignedTaskIds(List.of());
+
+        return new AuthResponse(token, userDto);
     }
 
-    // login
     @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest req) {
         User user = userRepo.findByEmail(req.email())
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
-        // pass email again for token
         String token = jwtService.generateToken(user.getEmail());
 
-        return new AuthResponse(token);
+        // Create UserDTO and return it with the token
+        UserDTO userDto = new UserDTO();
+        userDto.setId(user.getId());
+        userDto.setName(user.getName());
+        userDto.setEmail(user.getEmail());
+        userDto.setOwnedProjectIds(List.of());
+        userDto.setAssignedTaskIds(List.of());
+
+        return new AuthResponse(token, userDto);
     }
 }
