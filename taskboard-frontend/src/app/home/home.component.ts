@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { ProjectService, ProjectDTO, TaskDTO } from '../services/project.service';
 
 @Component({
   selector: 'app-home',
@@ -10,6 +11,7 @@ import { AuthService } from '../services/auth.service';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="home-container">
+      <!-- Header -->
       <header class="header">
         <div class="header-content">
           <h1 class="logo">
@@ -21,7 +23,7 @@ import { AuthService } from '../services/auth.service';
             Taskboard
           </h1>
           <div class="header-right">
-            <span class="user-name">Welcome, {{ (currentUser?.name || currentUser?.username || 'User') }}</span>
+            <span class="user-name">Welcome, {{ currentUser?.name || 'User' }}</span>
             <button class="logout-btn" (click)="onLogout()">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -33,13 +35,17 @@ import { AuthService } from '../services/auth.service';
           </div>
         </div>
       </header>
+
+      <!-- Main Content -->
       <main class="main-content">
         <div class="welcome-section">
           <h2>Your Workspace</h2>
           <p>Manage your projects and tasks efficiently</p>
         </div>
 
+        <!-- Action Cards -->
         <div class="action-grid">
+          <!-- Projects Card -->
           <div class="action-card projects-card">
             <div class="card-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -50,11 +56,11 @@ import { AuthService } from '../services/auth.service';
             <p>Organize your work into projects</p>
             <div class="card-stats">
               <div class="stat">
-                <span class="stat-number">0</span>
+                <span class="stat-number">{{ activeProjects }}</span>
                 <span class="stat-label">Active</span>
               </div>
               <div class="stat">
-                <span class="stat-number">0</span>
+                <span class="stat-number">{{ completedProjects }}</span>
                 <span class="stat-label">Completed</span>
               </div>
             </div>
@@ -72,6 +78,7 @@ import { AuthService } from '../services/auth.service';
             </div>
           </div>
 
+          <!-- Tasks Card -->
           <div class="action-card tasks-card">
             <div class="card-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -86,11 +93,11 @@ import { AuthService } from '../services/auth.service';
             <p>Keep track of your todos</p>
             <div class="card-stats">
               <div class="stat">
-                <span class="stat-number">0</span>
+                <span class="stat-number">{{ pendingTasks }}</span>
                 <span class="stat-label">Pending</span>
               </div>
               <div class="stat">
-                <span class="stat-number">0</span>
+                <span class="stat-number">{{ doneTasks }}</span>
                 <span class="stat-label">Done</span>
               </div>
             </div>
@@ -108,6 +115,8 @@ import { AuthService } from '../services/auth.service';
             </div>
           </div>
         </div>
+
+        <!-- Quick Stats Section -->
         <div class="quick-stats">
           <div class="stat-box">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -115,7 +124,7 @@ import { AuthService } from '../services/auth.service';
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <div>
-              <div class="stat-value">0</div>
+              <div class="stat-value">{{ todayTasks }}</div>
               <div class="stat-title">Tasks Today</div>
             </div>
           </div>
@@ -125,7 +134,7 @@ import { AuthService } from '../services/auth.service';
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
             <div>
-              <div class="stat-value">0%</div>
+              <div class="stat-value">{{ completionRate }}%</div>
               <div class="stat-title">Completion Rate</div>
             </div>
           </div>
@@ -134,7 +143,7 @@ import { AuthService } from '../services/auth.service';
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
             </svg>
             <div>
-              <div class="stat-value">0</div>
+              <div class="stat-value">{{ activeProjects }}</div>
               <div class="stat-title">Active Projects</div>
             </div>
           </div>
@@ -424,33 +433,81 @@ import { AuthService } from '../services/auth.service';
 })
 export class HomeComponent implements OnInit {
   currentUser: any = null;
+  projects: ProjectDTO[] = [];
+  tasks: TaskDTO[] = [];
+  
+  // Computed stats
+  activeProjects = 0;
+  completedProjects = 0;
+  pendingTasks = 0;
+  doneTasks = 0;
+  todayTasks = 0;
+  completionRate = 0;
 
   constructor(
     private authService: AuthService,
+    private projectService: ProjectService,
     private router: Router,
     private cdRef: ChangeDetectorRef
   ) {}
 
-ngOnInit(): void {
-  this.authService.currentUser$.subscribe(user => {
-    console.log('Current user from observable:', user);
-    this.currentUser = user;
-    this.cdRef.markForCheck();
-  });
-  
-  const storedUser = localStorage.getItem('currentUser');
-  console.log('Stored user in localStorage:', storedUser);
-  
-  console.log('getCurrentUser() returns:', this.authService.getCurrentUser());
-}
+  ngOnInit(): void {
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      this.cdRef.markForCheck();
+    });
+    
+    this.loadStats();
+  }
 
+  loadStats(): void {
+    // Load projects
+    this.projectService.getAllProjects().subscribe({
+      next: (projects) => {
+        this.projects = projects;
+        this.calculateProjectStats();
+        this.cdRef.markForCheck();
+      },
+      error: (error) => {
+        console.error('Error loading projects:', error);
+      }
+    });
+
+    // Load tasks
+    this.projectService.getAllTasks().subscribe({
+      next: (tasks) => {
+        this.tasks = tasks;
+        this.calculateTaskStats();
+        this.cdRef.markForCheck();
+      },
+      error: (error) => {
+        console.error('Error loading tasks:', error);
+      }
+    });
+  }
+
+  calculateProjectStats(): void {
+    // For now, count all projects as active
+    // You can add a 'completed' field to Project later
+    this.activeProjects = this.projects.length;
+    this.completedProjects = 0;
+  }
+
+  calculateTaskStats(): void {
+    this.pendingTasks = this.tasks.filter(t => t.status === 'TODO' || t.status === 'IN_PROGRESS').length;
+    this.doneTasks = this.tasks.filter(t => t.status === 'DONE').length;
+    this.todayTasks = this.tasks.filter(t => t.status !== 'DONE').length;
+    
+    const totalTasks = this.tasks.length;
+    this.completionRate = totalTasks > 0 ? Math.round((this.doneTasks / totalTasks) * 100) : 0;
+  }
   createProject(): void {
-    console.log('Create project clicked');
+    this.router.navigate(['/projects/create']);
     // TODO: Navigate to create project page or open modal
   }
 
   viewProjects(): void {
-    console.log('View projects clicked');
+    this.router.navigate(['/projects']);
     // TODO: Navigate to projects list page
   }
 

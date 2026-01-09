@@ -3,6 +3,7 @@ package com.taskboard.controller;
 import com.taskboard.dto.ProjectCreateDTO;
 import com.taskboard.dto.ProjectDTO;
 import com.taskboard.model.Project;
+import com.taskboard.model.Task;
 import com.taskboard.model.User;
 import com.taskboard.repo.ProjectRepository;
 import com.taskboard.repo.UserRepository;
@@ -26,7 +27,11 @@ public class ProjectController {
     // get all projects
     @GetMapping
     public List<ProjectDTO> all() {
-        return repo.findAll().stream().map(this::toDTO).toList();
+        User currentUser = getAuthUser();
+        return repo.findByOwnerId(currentUser.getId())
+                .stream()
+                .map(this::toDTO)
+                .toList();
     }
 
     // get single project
@@ -73,6 +78,10 @@ public class ProjectController {
         dto.setName(p.getName());
         dto.setDescription(p.getDescription());
         dto.setOwnerId(p.getOwner() != null ? p.getOwner().getId() : null);
+
+        dto.setTaskIds(p.getTasks() != null ?
+                p.getTasks().stream().map(Task::getId).toList() :
+                List.of());
         return dto;
     }
 }
